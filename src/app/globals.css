@@ -1,0 +1,173 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --cream: #FDF0DC;
+  --cream-light: #FFFDF9;
+  --sage: #7CAF9E;
+  --sage-dark: #3D7A6C;
+  --terracotta: #D4704E;
+  --amber: #E8B86D;
+  --stone: #8C7B6B;
+  --stone-light: #E8DDD4;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #FFFDF9;
+  color: #4A3728;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Font size accessibility classes */
+body.font-large {
+  font-size: 120%;
+}
+
+body.font-xlarge {
+  font-size: 140%;
+}
+
+/* Warm scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #FDF0DC;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #C4B5A5;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8C7B6B;
+}
+
+/* Card components */
+.card-warm {
+  @apply bg-white rounded-3xl shadow-soft border border-stone-lighter/60 transition-all duration-300;
+}
+
+.card-warm:hover {
+  @apply shadow-warm-lg;
+  transform: translateY(-2px);
+}
+
+.btn-primary {
+  @apply bg-terracotta text-white rounded-2xl px-6 py-3 font-ui font-medium transition-all duration-200 shadow-warm;
+}
+
+.btn-primary:hover {
+  @apply bg-terracotta-500 shadow-warm-lg;
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  @apply bg-cream-200 text-stone-warm rounded-2xl px-6 py-3 font-ui font-medium transition-all duration-200;
+}
+
+.btn-sage {
+  @apply bg-sage text-white rounded-2xl px-6 py-3 font-ui font-medium transition-all duration-200 shadow-soft;
+}
+
+.btn-sage:hover {
+  @apply bg-sage-400;
+}
+
+.input-warm {
+  @apply w-full bg-cream-100 border border-stone-lighter rounded-2xl px-4 py-3 text-stone-warm font-ui focus:outline-none focus:ring-2 focus:ring-sage/40 focus:border-sage transition-all;
+}
+
+textarea.input-warm {
+  @apply resize-none;
+}
+
+/* Gradient backgrounds */
+.gradient-sunrise {
+  background: linear-gradient(135deg, #FDF0DC 0%, #F9E5C8 40%, #E8B86D20 100%);
+}
+
+.gradient-sage {
+  background: linear-gradient(135deg, #EEF3F1 0%, #D5E4DF 100%);
+}
+
+.gradient-terra {
+  background: linear-gradient(135deg, #FDF1EE 0%, #F9DDD6 100%);
+}
+
+/* Breathing animation */
+.breathing-circle {
+  animation: breathe 4s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { transform: scale(1); opacity: 0.85; }
+  50% { transform: scale(1.15); opacity: 1; }
+}
+
+/* Mood ring glow */
+.mood-glow-happy { box-shadow: 0 0 20px rgba(232, 184, 109, 0.5); }
+.mood-glow-calm { box-shadow: 0 0 20px rgba(124, 175, 158, 0.5); }
+.mood-glow-sad { box-shadow: 0 0 20px rgba(130, 150, 180, 0.5); }
+.mood-glow-anxious { box-shadow: 0 0 20px rgba(212, 112, 78, 0.4); }
+
+/* Toast customization */
+.toast-warm {
+  background: #FDF0DC !important;
+  color: #4A3728 !important;
+  border: 1px solid #E8DDD4 !important;
+  border-radius: 16px !important;
+  font-family: 'DM Sans', sans-serif !important;
+}
+
+/* Timeline line */
+.timeline-line::before {
+  content: '';
+  position: absolute;
+  left: 20px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, #D5E4DF, #F9E5C8);
+}
+
+/* Canvas cursor */
+canvas {
+  cursor: crosshair;
+}
+
+/* Page transitions */
+.page-enter {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Hydration wave */
+.water-fill {
+  transition: height 0.8s ease-in-out;
+  background: linear-gradient(180deg, #A8C8BF 0%, #7CAF9E 100%);
+}
+
+/* Leaf decorations */
+.leaf-decoration {
+  opacity: 0.08;
+  pointer-events: none;
+}

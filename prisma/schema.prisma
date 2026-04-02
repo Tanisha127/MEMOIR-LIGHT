@@ -1,0 +1,140 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  name          String
+  role          Role      @default(USER)
+  avatar        String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  familyMembers FamilyMember[]
+  journals      Journal[]
+  reminders     Reminder[]
+  activities    Activity[]
+  moodLogs      MoodLog[]
+  emergencyContacts EmergencyContact[]
+  hydrationLogs HydrationLog[]
+  breathingSessions BreathingSession[]
+
+  homeLatitude  Float?
+  homeLongitude Float?
+  safeRadius    Float?   @default(200)
+  fontSizePreference String @default("medium")
+  voiceSummaries Boolean @default(true)
+}
+
+enum Role {
+  USER
+  CAREGIVER
+}
+
+model FamilyMember {
+  id        String   @id @default(cuid())
+  name      String
+  relation  String
+  photo     String?
+  voiceNote String?
+  notes     String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model Journal {
+  id        String   @id @default(cuid())
+  title     String?
+  content   String
+  photo     String?
+  voiceNote String?
+  mood      String?
+  aiSummary String?
+  tags      String[]
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Reminder {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  type        ReminderType
+  time        String
+  recurring   Boolean      @default(true)
+  days        String[]
+  completed   Boolean      @default(false)
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime     @default(now())
+}
+
+enum ReminderType {
+  MEDICATION
+  HYDRATION
+  TASK
+  APPOINTMENT
+  EXERCISE
+}
+
+model Activity {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  type        String
+  duration    Int?
+  completed   Boolean  @default(false)
+  aiGenerated Boolean  @default(false)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+}
+
+model MoodLog {
+  id        String   @id @default(cuid())
+  mood      String
+  note      String?
+  emoji     String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model HydrationLog {
+  id        String   @id @default(cuid())
+  amount    Int      // in ml
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model EmergencyContact {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String
+  relation  String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model BreathingSession {
+  id        String   @id @default(cuid())
+  duration  Int      // seconds
+  pattern   String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
