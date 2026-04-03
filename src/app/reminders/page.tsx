@@ -1,7 +1,8 @@
 "use client";
-import { useState, useEffect } from "react";
-import { Plus, Bell, Check, Volume2, Pill, Droplets, ListChecks, Calendar } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Plus, Bell, Check, Volume2, Pill, Droplets, ListChecks, Calendar, BellRing } from "lucide-react";
 import toast from "react-hot-toast";
+import { showBrowserNotification, startReminderChecker } from "@/lib/notifications";
 
 type Reminder = {
   id: string;
@@ -13,11 +14,11 @@ type Reminder = {
 };
 
 const TYPE_CONFIG = {
-  MEDICATION: { icon: Pill, emoji: "💊", color: "text-terracotta-400", bg: "bg-terracotta-50" },
-  HYDRATION: { icon: Droplets, emoji: "💧", color: "text-sage-500", bg: "bg-sage-50" },
-  TASK: { icon: ListChecks, emoji: "✅", color: "text-amber-deep", bg: "bg-amber-light/20" },
-  APPOINTMENT: { icon: Calendar, emoji: "📅", color: "text-stone-warm", bg: "bg-cream-200" },
-  EXERCISE: { icon: Bell, emoji: "🏃", color: "text-sage-400", bg: "bg-sage-50" },
+  MEDICATION:  { icon: Pill,       emoji: "💊", color: "text-terracotta-400", bg: "bg-terracotta-50" },
+  HYDRATION:   { icon: Droplets,   emoji: "💧", color: "text-sage-500",       bg: "bg-sage-50" },
+  TASK:        { icon: ListChecks, emoji: "✅", color: "text-amber-deep",     bg: "bg-amber-light/20" },
+  APPOINTMENT: { icon: Calendar,   emoji: "📅", color: "text-stone-warm",     bg: "bg-cream-200" },
+  EXERCISE:    { icon: Bell,       emoji: "🏃", color: "text-sage-400",       bg: "bg-sage-50" },
 };
 
 export default function RemindersPage() {
@@ -25,8 +26,25 @@ export default function RemindersPage() {
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", type: "MEDICATION", time: "08:00" });
+  const [notifEnabled, setNotifEnabled] = useState(false);
+  const checkerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => { fetchReminders(); }, []);
+  useEffect(() => {
+    fetchReminders();
+    if ("Notification" in window) {
+      setNotifEnabled(Notification.permission === "granted");
+    }
+  }, []);
+
+  // Start reminder checker whenever reminders load
+  useEffect(() => {
+    if (reminders.length === 0) return;
+    if (checkerRef.current) clearInterval(checkerRef.current);
+    checkerRef.current = startReminderChecker(reminders);
+    return () => {
+      if (checkerRef.current) clearInterval(checkerRef.current);
+    };
+  }, [reminders]);
 
   const fetchReminders = async () => {
     try {
@@ -46,6 +64,16 @@ export default function RemindersPage() {
       });
       if (!res.ok) throw new Error();
       toast.success("Reminder set! 🔔");
+
+      // Show a test notification immediately so user knows it works
+      if (notifEnabled) {
+        showBrowserNotification(
+          "✅ Reminder saved!",
+          `"${form.title}" is set for ${form.time}`,
+          "/reminders"
+        );
+      }
+
       setForm({ title: "", description: "", type: "MEDICATION", time: "08:00" });
       setShowForm(false);
       fetchReminders();
@@ -84,6 +112,17 @@ export default function RemindersPage() {
     toast(`Reading: ${r.title} 🔊`);
   };
 
+  // Test notification immediately
+  const testNotification = (r: Reminder) => {
+    const emoji = (TYPE_CONFIG as Record<string, { emoji: string }>)[r.type]?.emoji || "🔔";
+    showBrowserNotification(
+      `${emoji} ${r.title}`,
+      r.description || "This is how your reminder will look!",
+      "/reminders"
+    );
+    toast("Test notification sent 🔔");
+  };
+
   const grouped = reminders.reduce((acc, r) => {
     const key = r.completed ? "done" : "upcoming";
     acc[key] = [...(acc[key] || []), r];
@@ -105,6 +144,24 @@ export default function RemindersPage() {
         </button>
       </div>
 
+      {/* Notification status banner */}
+      {notifEnabled ? (
+        <div className="bg-sage/10 rounded-2xl p-4 mb-6 flex items-center gap-3 border border-sage/20">
+          <span className="text-xl">🔔</span>
+          <p className="font-ui text-sm text-sage-500 font-medium flex-1">
+            Push notifications are active — reminders will pop up at their scheduled time
+          </p>
+        </div>
+      ) : (
+        <div className="bg-amber-light/20 rounded-2xl p-4 mb-6 flex items-center gap-3 border border-amber-warm/30">
+          <BellRing className="text-amber-deep flex-shrink-0" size={20} />
+          <p className="font-ui text-sm text-stone-warm flex-1">
+            Enable notifications on the dashboard to get pop-up reminders at reminder time
+          </p>
+        </div>
+      )}
+
+      {/* Add form */}
       {showForm && (
         <div className="card-warm p-6 mb-8 animate-slide-up">
           <h2 className="font-display text-xl font-semibold text-stone-warm mb-5">New Reminder</h2>
@@ -125,22 +182,36 @@ export default function RemindersPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block font-ui text-xs font-medium text-stone-warm mb-1.5">Type</label>
-                <select className="input-warm" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
+                <select
+                  className="input-warm"
+                  value={form.type}
+                  onChange={(e) => setForm({ ...form, type: e.target.value })}
+                >
                   {Object.keys(TYPE_CONFIG).map((t) => (
-                    <option key={t} value={t}>{(TYPE_CONFIG as Record<string, {emoji: string}>)[t].emoji} {t.charAt(0) + t.slice(1).toLowerCase()}</option>
+                    <option key={t} value={t}>
+                      {(TYPE_CONFIG as Record<string, { emoji: string }>)[t].emoji}{" "}
+                      {t.charAt(0) + t.slice(1).toLowerCase()}
+                    </option>
                   ))}
                 </select>
               </div>
               <div>
                 <label className="block font-ui text-xs font-medium text-stone-warm mb-1.5">Time</label>
-                <input type="time" className="input-warm" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} />
+                <input
+                  type="time"
+                  className="input-warm"
+                  value={form.time}
+                  onChange={(e) => setForm({ ...form, time: e.target.value })}
+                />
               </div>
             </div>
             <div className="flex gap-3">
               <button onClick={handleSubmit} disabled={loading} className="btn-primary text-sm py-2">
                 {loading ? "Saving…" : "Save Reminder"}
               </button>
-              <button onClick={() => setShowForm(false)} className="btn-secondary text-sm py-2">Cancel</button>
+              <button onClick={() => setShowForm(false)} className="btn-secondary text-sm py-2">
+                Cancel
+              </button>
             </div>
           </div>
         </div>
@@ -152,18 +223,30 @@ export default function RemindersPage() {
           <h2 className="font-ui font-semibold text-stone-warm mb-3">Upcoming Today</h2>
           <div className="space-y-3">
             {(grouped.upcoming || []).map((r) => {
-              const config = (TYPE_CONFIG as Record<string, {emoji: string; bg: string; color: string}>)[r.type] || TYPE_CONFIG.TASK;
+              const config = (TYPE_CONFIG as Record<string, { emoji: string; bg: string; color: string }>)[r.type] || TYPE_CONFIG.TASK;
               return (
-                <div key={r.id} className={`card-warm p-4 flex items-center gap-4`}>
+                <div key={r.id} className="card-warm p-4 flex items-center gap-4">
                   <div className={`w-12 h-12 ${config.bg} rounded-2xl flex items-center justify-center text-2xl flex-shrink-0`}>
                     {config.emoji}
                   </div>
                   <div className="flex-1">
                     <p className="font-ui font-medium text-stone-warm">{r.title}</p>
-                    {r.description && <p className="font-ui text-sm text-stone-light">{r.description}</p>}
-                    <p className="font-ui text-xs text-stone-light mt-0.5">{r.time}</p>
+                    {r.description && (
+                      <p className="font-ui text-sm text-stone-light">{r.description}</p>
+                    )}
+                    <p className="font-ui text-xs text-stone-light mt-0.5">⏰ {r.time}</p>
                   </div>
                   <div className="flex gap-2">
+                    {/* Test notification button */}
+                    {notifEnabled && (
+                      <button
+                        onClick={() => testNotification(r)}
+                        title="Test notification"
+                        className="w-9 h-9 bg-amber-light/30 rounded-xl flex items-center justify-center text-amber-deep hover:bg-amber-light/50 transition-colors"
+                      >
+                        <BellRing size={15} />
+                      </button>
+                    )}
                     <button
                       onClick={() => speakReminder(r)}
                       className="w-9 h-9 bg-sage/10 rounded-xl flex items-center justify-center text-sage-500 hover:bg-sage/20 transition-colors"
