@@ -75,64 +75,7 @@ Open [http://localhost:3000](http://localhost:3000) 🌿
 
 ---
 
-## 📁 Project Structure
-
-```
-memoir-light/
-├── prisma/
-│   └── schema.prisma          # Database models
-├── src/
-│   ├── app/
-│   │   ├── api/               # All API routes
-│   │   │   ├── auth/          # Register + NextAuth
-│   │   │   ├── journal/       # Journal CRUD + AI summary
-│   │   │   ├── family/        # Family members CRUD
-│   │   │   ├── reminders/     # Reminders CRUD
-│   │   │   ├── mood/          # Mood logs
-│   │   │   ├── activities/    # AI activity generation
-│   │   │   ├── breathing/     # Breathing sessions
-│   │   │   └── emergency/     # Emergency contacts
-│   │   ├── dashboard/         # 🏡 Home dashboard
-│   │   ├── journal/           # 📖 Memory journal
-│   │   ├── family/            # 👨‍👩‍👧 Family gallery
-│   │   ├── reminders/         # 🔔 Reminders
-│   │   ├── activities/        # ✨ Activities + canvas
-│   │   ├── mood/              # 🌸 Mood garden
-│   │   ├── breathing/         # 🌬️ Calm breathing
-│   │   ├── timeline/          # 🗺️ Life timeline
-│   │   ├── emergency/         # 🆘 Emergency contacts
-│   │   └── settings/          # ⚙️ Preferences
-│   ├── components/
-│   │   ├── layout/
-│   │   │   └── Sidebar.tsx    # Navigation sidebar
-│   │   └── Providers.tsx      # Session provider
-│   └── lib/
-│       ├── auth.ts            # NextAuth config
-│       └── prisma.ts          # Prisma client
-└── README.md
-```
-
----
-
-## 🎨 Design System
-
-### Color Palette
-```css
-Cream:       #FDF0DC  — warm backgrounds
-Sage:        #7CAF9E  — calm accents, buttons
-Terracotta:  #D4704E  — primary actions, warmth
-Amber:       #E8B86D  — gentle highlights
-Stone:       #8C7B6B  — body text
-```
-
-### Typography
-- **Display** — Playfair Display (headings, warmth)
-- **Body** — Lora (journal text, readable serif)
-- **UI** — DM Sans (labels, buttons, clean)
-
----
-
-## 🌟 Unique Features (Not in memory-haven)
+## 🌟 Unique Features 
 
 1. **Mood Garden** — Moods become flowers in a growing visual garden
 2. **Life Timeline** — Chronicle life milestones from birth to today
@@ -162,12 +105,3 @@ Stone:       #8C7B6B  — body text
 - Large tap targets (min 44px)
 - Serif fonts for better readability
 
----
-
-## 🤝 Contributing
-
-Pull requests welcome. Please keep the warm, human design philosophy in mind.
-
----
-
-*Built with love for people who deserve gentle, beautiful technology* 💛

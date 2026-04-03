@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   const userId = (session.user as { id: string }).id;
   const body = await request.json();
   const member = await prisma.familyMember.create({
-    data: { name: body.name, relation: body.relation, notes: body.notes || null, userId },
+    data: { name: body.name, relation: body.relation, notes: body.notes || null, photo: body.photo || null, voiceNote: body.voiceNote || null, userId },
   });
   return NextResponse.json(member);
 }
