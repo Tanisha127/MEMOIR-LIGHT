@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   BookOpen, Users, Bell, Zap, Wind, BarChart2,
-  Sun, Droplets, MapPin, Phone, ArrowRight,
+  Sun, Droplets, Phone, ArrowRight,
 } from "lucide-react";
+import LocationBadge from "./LocationBadge";
 
 const GREETINGS = [
   "You are safe and loved 💛",
@@ -22,12 +23,12 @@ const TIME_OF_DAY = () => {
 };
 
 const quickCards = [
-  { href: "/journal", icon: BookOpen, emoji: "📖", label: "Memory Journal", desc: "Write or recall a memory", color: "from-sage-50 to-sage-100", accent: "text-sage-500" },
-  { href: "/family", icon: Users, emoji: "👨‍👩‍👧", label: "My Family", desc: "See the people you love", color: "from-terracotta-50 to-terracotta-100", accent: "text-terracotta-400" },
-  { href: "/reminders", icon: Bell, emoji: "🔔", label: "Reminders", desc: "Medications & daily tasks", color: "from-amber-light/30 to-amber-warm/20", accent: "text-amber-deep" },
-  { href: "/activities", icon: Zap, emoji: "✨", label: "Activities", desc: "Gentle exercises & music", color: "from-cream-200 to-cream-300", accent: "text-stone-warm" },
-  { href: "/breathing", icon: Wind, emoji: "🌬️", label: "Calm Breathing", desc: "A moment of peace", color: "from-sage-50 to-sage-100", accent: "text-sage-500" },
-  { href: "/mood", icon: BarChart2, emoji: "🌸", label: "Mood Garden", desc: "How are you feeling?", color: "from-terracotta-50 to-terracotta-100", accent: "text-terracotta-400" },
+  { href: "/journal",   icon: BookOpen,  emoji: "📖", label: "Memory Journal", desc: "Write or recall a memory",      color: "from-sage-50 to-sage-100",           accent: "text-sage-500" },
+  { href: "/family",    icon: Users,     emoji: "👨‍👩‍👧", label: "My Family",      desc: "See the people you love",       color: "from-terracotta-50 to-terracotta-100", accent: "text-terracotta-400" },
+  { href: "/reminders", icon: Bell,      emoji: "🔔", label: "Reminders",       desc: "Medications & daily tasks",     color: "from-amber-light/30 to-amber-warm/20", accent: "text-amber-deep" },
+  { href: "/activities",icon: Zap,       emoji: "✨", label: "Activities",       desc: "Gentle exercises & music",      color: "from-cream-200 to-cream-300",          accent: "text-stone-warm" },
+  { href: "/breathing", icon: Wind,      emoji: "🌬️", label: "Calm Breathing",  desc: "A moment of peace",             color: "from-sage-50 to-sage-100",           accent: "text-sage-500" },
+  { href: "/mood",      icon: BarChart2, emoji: "🌸", label: "Mood Garden",     desc: "How are you feeling?",          color: "from-terracotta-50 to-terracotta-100", accent: "text-terracotta-400" },
 ];
 
 const weatherTips = [
@@ -40,8 +41,8 @@ const weatherTips = [
 export default function DashboardPage() {
   const { data: session } = useSession();
   const [greeting] = useState(GREETINGS[Math.floor(Math.random() * GREETINGS.length)]);
-  const [tip] = useState(weatherTips[Math.floor(Math.random() * weatherTips.length)]);
-  const timeOfDay = TIME_OF_DAY();
+  const [tip]      = useState(weatherTips[Math.floor(Math.random() * weatherTips.length)]);
+  const timeOfDay  = TIME_OF_DAY();
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
@@ -50,16 +51,20 @@ export default function DashboardPage() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto page-enter">
+
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-start justify-between">
           <div>
             <p className="font-ui text-stone-light text-sm mb-1">{today}</p>
             <h1 className="font-display text-3xl font-bold text-stone-warm mb-2">
-              {timeOfDay.icon} {timeOfDay.label}, {session?.user?.name?.split(" ")[0] || "friend"}
+              {timeOfDay.icon} {timeOfDay.label},{" "}
+              {session?.user?.name?.split(" ")[0] || "friend"}
             </h1>
             <p className="font-body text-sage-500 text-lg italic">{greeting}</p>
           </div>
+
+          {/* Emergency + Location badges — top right */}
           <div className="hidden md:flex flex-col items-end gap-2">
             <Link
               href="/emergency"
@@ -68,6 +73,7 @@ export default function DashboardPage() {
               <Phone size={15} />
               Emergency
             </Link>
+            <LocationBadge />
           </div>
         </div>
       </div>
@@ -116,7 +122,9 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick access grid */}
-      <h2 className="font-display text-xl font-bold text-stone-warm mb-4">What would you like to do?</h2>
+      <h2 className="font-display text-xl font-bold text-stone-warm mb-4">
+        What would you like to do?
+      </h2>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
         {quickCards.map(({ href, emoji, label, desc, color, accent }) => (
           <Link key={href} href={href}>
@@ -130,19 +138,15 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Location status */}
-      <div className="card-warm p-5 flex items-center gap-4">
-        <div className="w-12 h-12 bg-sage/10 rounded-2xl flex items-center justify-center">
-          <MapPin className="text-sage" size={20} />
-        </div>
+      {/* Mobile location strip (visible only on small screens) */}
+      <div className="md:hidden card-warm p-4 flex items-center justify-between">
         <div>
-          <p className="font-ui font-medium text-stone-warm">Location Safety</p>
-          <p className="font-ui text-sm text-sage-500">✓ You are safely within your home area</p>
+          <p className="font-ui font-medium text-stone-warm text-sm">Location Safety</p>
+          <p className="font-ui text-xs text-stone-light">Tap to view your safe zone</p>
         </div>
-        <Link href="/settings" className="ml-auto font-ui text-xs text-stone-light hover:text-terracotta transition-colors">
-          Configure
-        </Link>
+        <LocationBadge />
       </div>
+
     </div>
   );
 }
