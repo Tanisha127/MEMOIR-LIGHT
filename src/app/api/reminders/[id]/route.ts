@@ -14,9 +14,11 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   return NextResponse.json(reminder);
 }
 
-export async function DELETE(_request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  await prisma.reminder.delete({ where: { id: params.id } });
-  return NextResponse.json({ success: true });
+  if (!session) return new Response("Unauthorized", { status: 401 });
+  await prisma.reminder.delete({
+    where: { id: params.id },
+  });
+  return new Response(null, { status: 204 });
 }

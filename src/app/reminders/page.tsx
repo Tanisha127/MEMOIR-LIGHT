@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { Plus, Bell, Check, Volume2, Pill, Droplets, ListChecks, Calendar, BellRing } from "lucide-react";
+import { Plus, Bell, Check, Volume2, Pill, Droplets, ListChecks, Calendar, BellRing, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { showBrowserNotification, startReminderChecker } from "@/lib/notifications";
 
@@ -22,10 +22,11 @@ const TYPE_CONFIG = {
 };
 
 export default function RemindersPage() {
-  const [reminders, setReminders] = useState<Reminder[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ title: "", description: "", type: "MEDICATION", time: "08:00" });
+  const [reminders, setReminders]       = useState<Reminder[]>([]);
+  const [showForm, setShowForm]         = useState(false);
+  const [loading, setLoading]           = useState(false);
+  const [deletingId, setDeletingId]     = useState<string | null>(null); // ✅ tracks which is being deleted
+  const [form, setForm]                 = useState({ title: "", description: "", type: "MEDICATION", time: "08:00" });
   const [notifEnabled, setNotifEnabled] = useState(false);
   const checkerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -36,7 +37,6 @@ export default function RemindersPage() {
     }
   }, []);
 
-  // Start reminder checker whenever reminders load
   useEffect(() => {
     if (reminders.length === 0) return;
     if (checkerRef.current) clearInterval(checkerRef.current);
@@ -64,16 +64,9 @@ export default function RemindersPage() {
       });
       if (!res.ok) throw new Error();
       toast.success("Reminder set! 🔔");
-
-      // Show a test notification immediately so user knows it works
       if (notifEnabled) {
-        showBrowserNotification(
-          "✅ Reminder saved!",
-          `"${form.title}" is set for ${form.time}`,
-          "/reminders"
-        );
+        showBrowserNotification("✅ Reminder saved!", `"${form.title}" is set for ${form.time}`, "/reminders");
       }
-
       setForm({ title: "", description: "", type: "MEDICATION", time: "08:00" });
       setShowForm(false);
       fetchReminders();
@@ -99,6 +92,44 @@ export default function RemindersPage() {
     } catch {}
   };
 
+  // ✅ Delete handler with confirmation
+  const deleteReminder = async (id: string, title: string) => {
+    toast((t) => (
+      <div className="flex flex-col gap-3">
+        <p className="font-ui text-sm text-stone-warm">
+          Delete <strong>"{title}"</strong>?
+        </p>
+        <div className="flex gap-2">
+          <button
+            onClick={async () => {
+              toast.dismiss(t.id);
+              setDeletingId(id);
+              try {
+                const res = await fetch(`/api/reminders/${id}`, { method: "DELETE" });
+                if (!res.ok) throw new Error();
+                toast.success("Reminder deleted");
+                fetchReminders();
+              } catch {
+                toast.error("Could not delete reminder");
+              } finally {
+                setDeletingId(null);
+              }
+            }}
+            className="bg-terracotta text-white text-xs font-ui font-medium px-3 py-1.5 rounded-xl"
+          >
+            Yes, delete
+          </button>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="bg-cream-200 text-stone-warm text-xs font-ui font-medium px-3 py-1.5 rounded-xl"
+          >
+            Keep it
+          </button>
+        </div>
+      </div>
+    ), { duration: 8000 });
+  };
+
   const speakCongrats = () => {
     const u = new SpeechSynthesisUtterance("Well done! You've completed a task today.");
     u.rate = 0.85;
@@ -112,14 +143,9 @@ export default function RemindersPage() {
     toast(`Reading: ${r.title} 🔊`);
   };
 
-  // Test notification immediately
   const testNotification = (r: Reminder) => {
     const emoji = (TYPE_CONFIG as Record<string, { emoji: string }>)[r.type]?.emoji || "🔔";
-    showBrowserNotification(
-      `${emoji} ${r.title}`,
-      r.description || "This is how your reminder will look!",
-      "/reminders"
-    );
+    showBrowserNotification(`${emoji} ${r.title}`, r.description || "This is how your reminder will look!", "/reminders");
     toast("Test notification sent 🔔");
   };
 
@@ -128,6 +154,21 @@ export default function RemindersPage() {
     acc[key] = [...(acc[key] || []), r];
     return acc;
   }, {} as Record<string, Reminder[]>);
+
+  // ✅ Reusable delete button component
+  const DeleteButton = ({ id, title }: { id: string; title: string }) => (
+    <button
+      onClick={() => deleteReminder(id, title)}
+      disabled={deletingId === id}
+      title="Delete reminder"
+      className="w-9 h-9 bg-red-50 rounded-xl flex items-center justify-center text-red-400 hover:bg-red-100 hover:text-red-600 transition-colors disabled:opacity-40"
+    >
+      {deletingId === id
+        ? <span className="text-xs">…</span>
+        : <Trash2 size={15} />
+      }
+    </button>
+  );
 
   return (
     <div className="p-6 max-w-2xl mx-auto page-enter">
@@ -237,7 +278,6 @@ export default function RemindersPage() {
                     <p className="font-ui text-xs text-stone-light mt-0.5">⏰ {r.time}</p>
                   </div>
                   <div className="flex gap-2">
-                    {/* Test notification button */}
                     {notifEnabled && (
                       <button
                         onClick={() => testNotification(r)}
@@ -259,6 +299,8 @@ export default function RemindersPage() {
                     >
                       <Check size={15} />
                     </button>
+                    {/* ✅ Delete button */}
+                    <DeleteButton id={r.id} title={r.title} />
                   </div>
                 </div>
               );
@@ -280,12 +322,16 @@ export default function RemindersPage() {
                 <div className="flex-1">
                   <p className="font-ui font-medium text-stone-warm line-through">{r.title}</p>
                 </div>
-                <button
-                  onClick={() => toggleComplete(r.id, r.completed)}
-                  className="w-9 h-9 bg-cream-200 rounded-xl flex items-center justify-center text-stone-light hover:text-stone-warm transition-colors"
-                >
-                  <Check size={15} />
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => toggleComplete(r.id, r.completed)}
+                    className="w-9 h-9 bg-cream-200 rounded-xl flex items-center justify-center text-stone-light hover:text-stone-warm transition-colors"
+                  >
+                    <Check size={15} />
+                  </button>
+                  {/* ✅ Delete on completed too */}
+                  <DeleteButton id={r.id} title={r.title} />
+                </div>
               </div>
             ))}
           </div>
