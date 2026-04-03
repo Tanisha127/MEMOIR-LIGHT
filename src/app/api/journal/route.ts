@@ -28,6 +28,8 @@ export async function POST(request: Request) {
       content: body.content,
       mood: body.mood || null,
       aiSummary: body.aiSummary || null,
+      photo: body.photo || null,
+      voiceNote: body.voiceNote || null,
       tags: body.tags || [],
       userId,
     },

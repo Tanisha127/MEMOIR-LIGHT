@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { Plus, Mic, MicOff, Sparkles } from "lucide-react";
+import { Plus, Mic, MicOff, Sparkles, Camera, X } from "lucide-react";
 import toast from "react-hot-toast";
 
 type Journal = {
@@ -12,6 +12,7 @@ type Journal = {
   tags?: string[];
   createdAt: string;
   photo?: string;
+  voiceNote?: string;
 };
 
 const MOOD_OPTIONS = [
@@ -55,6 +56,18 @@ export default function JournalPage() {
   const [aiSummary, setAiSummary] = useState("");
   const recognitionRef = useRef<ISpeechRecognition | null>(null);
 
+  // Photo state
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoBase64, setPhotoBase64] = useState<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  // Voice recording state
+  const [voiceRecording, setVoiceRecording] = useState(false);
+  const [voiceBlob, setVoiceBlob] = useState<Blob | null>(null);
+  const [voiceURL, setVoiceURL] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<BlobPart[]>([]);
+
   useEffect(() => { fetchJournals(); }, []);
 
   const fetchJournals = async () => {
@@ -64,6 +77,66 @@ export default function JournalPage() {
     } catch { /* ignore */ }
   };
 
+  // ── Photo handlers ────────────────────────────────────────
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) { toast.error("Photo must be under 3MB"); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const b64 = reader.result as string;
+      setPhotoPreview(b64);
+      setPhotoBase64(b64);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removePhoto = () => {
+    setPhotoPreview(null);
+    setPhotoBase64(null);
+    if (photoInputRef.current) photoInputRef.current.value = "";
+  };
+
+  // ── Voice memo recording ──────────────────────────────────
+  const startVoiceMemo = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      chunksRef.current = [];
+      const recorder = new MediaRecorder(stream);
+      recorder.ondataavailable = (e) => chunksRef.current.push(e.data);
+      recorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        setVoiceBlob(blob);
+        setVoiceURL(URL.createObjectURL(blob));
+        stream.getTracks().forEach((t) => t.stop());
+      };
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      setVoiceRecording(true);
+      toast("Recording your memory… 🎙️");
+    } catch {
+      toast.error("Microphone access denied. Please allow it in browser settings.");
+    }
+  };
+
+  const stopVoiceMemo = () => {
+    mediaRecorderRef.current?.stop();
+    setVoiceRecording(false);
+  };
+
+  const removeVoice = () => {
+    setVoiceBlob(null);
+    setVoiceURL(null);
+  };
+
+  const blobToBase64 = (blob: Blob): Promise<string> =>
+    new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.readAsDataURL(blob);
+    });
+
+  // ── Speech-to-text (dictation) ────────────────────────────
   const startVoice = () => {
     const win = window as IWindow;
     const SR = win.webkitSpeechRecognition || win.SpeechRecognition;
@@ -84,6 +157,7 @@ export default function JournalPage() {
 
   const stopVoice = () => { recognitionRef.current?.stop(); setRecording(false); };
 
+  // ── AI summary ────────────────────────────────────────────
   const generateSummary = async () => {
     if (!form.content) return toast.error("Please write something first");
     setAiLoading(true);
@@ -99,16 +173,22 @@ export default function JournalPage() {
     finally { setAiLoading(false); }
   };
 
+  // ── Submit ────────────────────────────────────────────────
   const handleSubmit = async () => {
     if (!form.content) return toast.error("Please write something first");
     setLoading(true);
     try {
+      let voiceBase64: string | null = null;
+      if (voiceBlob) voiceBase64 = await blobToBase64(voiceBlob);
+
       const res = await fetch("/api/journal", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
           aiSummary,
+          photo: photoBase64 || null,
+          voiceNote: voiceBase64 || null,
           tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
         }),
       });
@@ -116,6 +196,10 @@ export default function JournalPage() {
       toast.success("Memory saved beautifully 📖");
       setForm({ title: "", content: "", mood: "", tags: "" });
       setAiSummary("");
+      setPhotoPreview(null);
+      setPhotoBase64(null);
+      setVoiceBlob(null);
+      setVoiceURL(null);
       setShowForm(false);
       fetchJournals();
     } catch { toast.error("Could not save. Please try again."); }
@@ -141,32 +225,48 @@ export default function JournalPage() {
       {showForm && (
         <div className="card-warm p-6 mb-8 animate-slide-up">
           <h2 className="font-display text-xl font-semibold text-stone-warm mb-5">Write a Memory ✍️</h2>
-          <div className="space-y-4">
+          <div className="space-y-5">
+
             <input
               className="input-warm"
               placeholder="Give it a title… (optional)"
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
             />
-            <div className="relative">
+
+            {/* Text + dictation mic */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="font-ui text-sm font-medium text-stone-warm">Your Memory</label>
+                <button
+                  onClick={recording ? stopVoice : startVoice}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-ui text-xs font-medium transition-all ${
+                    recording
+                      ? "bg-terracotta text-white animate-pulse"
+                      : "bg-cream-200 text-stone-warm hover:bg-cream-300"
+                  }`}
+                >
+                  {recording ? <><MicOff size={13} /> Stop Dictation</> : <><Mic size={13} /> Dictate</>}
+                </button>
+              </div>
               <textarea
-                className="input-warm min-h-[140px] pr-12"
+                className="input-warm min-h-[120px]"
                 placeholder="What happened today? Even small things matter…"
                 value={form.content}
                 onChange={(e) => setForm({ ...form, content: e.target.value })}
               />
-              <button
-                onClick={recording ? stopVoice : startVoice}
-                className={`absolute right-3 top-3 p-2 rounded-xl transition-all ${
-                  recording ? "bg-terracotta text-white animate-pulse" : "bg-cream-200 text-stone-warm hover:bg-cream-300"
-                }`}
-              >
-                {recording ? <MicOff size={16} /> : <Mic size={16} />}
-              </button>
+              {recording && (
+                <p className="font-ui text-xs text-terracotta mt-1 animate-pulse">
+                  🎙️ Listening… speak now, then press Stop Dictation
+                </p>
+              )}
             </div>
 
+            {/* Mood */}
             <div>
-              <label className="block font-ui text-sm font-medium text-stone-warm mb-2">How are you feeling?</label>
+              <label className="block font-ui text-sm font-medium text-stone-warm mb-2">
+                How are you feeling?
+              </label>
               <div className="flex gap-2 flex-wrap">
                 {MOOD_OPTIONS.map(({ emoji, label, value }) => (
                   <button
@@ -182,6 +282,84 @@ export default function JournalPage() {
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Photo Upload */}
+            <div>
+              <label className="block font-ui text-sm font-medium text-stone-warm mb-2">
+                📷 Add a Photo <span className="text-stone-light font-normal">(optional)</span>
+              </label>
+              {photoPreview ? (
+                <div className="relative inline-block w-full">
+                  <img
+                    src={photoPreview}
+                    alt="Memory photo"
+                    className="w-full max-h-48 object-cover rounded-2xl shadow-soft"
+                  />
+                  <button
+                    onClick={removePhoto}
+                    className="absolute top-2 right-2 w-7 h-7 bg-terracotta text-white rounded-full flex items-center justify-center shadow-soft"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => photoInputRef.current?.click()}
+                  className="flex items-center gap-2 px-4 py-3 bg-cream-100 border-2 border-dashed border-stone-lighter rounded-2xl text-stone-warm hover:bg-cream-200 hover:border-sage transition-all font-ui text-sm w-full justify-center"
+                >
+                  <Camera size={18} className="text-sage" />
+                  Click to add a photo to this memory
+                </button>
+              )}
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePhotoChange}
+              />
+              <p className="font-ui text-xs text-stone-light mt-1">JPG, PNG · Max 3MB</p>
+            </div>
+
+            {/* Voice Memo Recording */}
+            <div>
+              <label className="block font-ui text-sm font-medium text-stone-warm mb-1">
+                🎙️ Add a Voice Memo <span className="text-stone-light font-normal">(optional)</span>
+              </label>
+              <p className="font-ui text-xs text-stone-light mb-3">
+                Record yourself describing this memory in your own voice
+              </p>
+              {voiceURL ? (
+                <div className="flex items-center gap-3 bg-sage/10 rounded-2xl p-3">
+                  <audio src={voiceURL} controls className="flex-1 h-8" />
+                  <button
+                    onClick={removeVoice}
+                    className="w-8 h-8 bg-terracotta/10 rounded-xl flex items-center justify-center text-terracotta hover:bg-terracotta/20 transition-colors flex-shrink-0"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={voiceRecording ? stopVoiceMemo : startVoiceMemo}
+                  className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-ui text-sm font-medium transition-all w-full justify-center ${
+                    voiceRecording
+                      ? "bg-terracotta text-white animate-pulse"
+                      : "bg-cream-100 text-stone-warm hover:bg-cream-200 border-2 border-dashed border-stone-lighter hover:border-sage"
+                  }`}
+                >
+                  {voiceRecording
+                    ? <><MicOff size={16} /> Stop Recording</>
+                    : <><Mic size={16} className="text-sage" /> Start Recording</>
+                  }
+                </button>
+              )}
+              {voiceRecording && (
+                <p className="font-ui text-xs text-terracotta mt-2 animate-pulse">
+                  ● Recording in progress… press Stop when done
+                </p>
+              )}
             </div>
 
             <input
@@ -211,12 +389,15 @@ export default function JournalPage() {
         </div>
       )}
 
+      {/* Journal list */}
       <div className="space-y-4">
         {journals.length === 0 && (
           <div className="text-center py-16">
             <div className="text-6xl mb-4">📔</div>
             <p className="font-display text-xl text-stone-warm mb-2">Your journal awaits</p>
-            <p className="font-body text-stone-light italic">Start with something small — even &ldquo;Today I saw a flower&rdquo;</p>
+            <p className="font-body text-stone-light italic">
+              Start with something small — even &ldquo;Today I saw a flower&rdquo;
+            </p>
           </div>
         )}
         {journals.map((j) => (
@@ -224,21 +405,47 @@ export default function JournalPage() {
             <div className="flex items-start justify-between mb-2">
               <div>
                 <p className="font-ui text-xs text-stone-light mb-1">{formatDate(j.createdAt)}</p>
-                {j.title && <h3 className="font-display text-lg font-semibold text-stone-warm">{j.title}</h3>}
+                {j.title && (
+                  <h3 className="font-display text-lg font-semibold text-stone-warm">{j.title}</h3>
+                )}
               </div>
-              {j.mood && <span className="text-xl">{MOOD_OPTIONS.find((m) => m.value === j.mood)?.emoji}</span>}
+              {j.mood && (
+                <span className="text-xl">
+                  {MOOD_OPTIONS.find((m) => m.value === j.mood)?.emoji}
+                </span>
+              )}
             </div>
+
+            {/* Photo */}
+            {j.photo && (
+              <div className="mb-3 rounded-2xl overflow-hidden">
+                <img src={j.photo} alt="Memory" className="w-full max-h-56 object-cover" />
+              </div>
+            )}
+
             <p className="font-body text-stone-warm leading-relaxed mb-3">{j.content}</p>
+
+            {/* Voice memo player */}
+            {j.voiceNote && (
+              <div className="bg-sage/10 rounded-2xl p-3 mb-3">
+                <p className="font-ui text-xs text-sage-500 font-medium mb-2">🎙️ Voice Memo</p>
+                <audio src={j.voiceNote} controls className="w-full h-8" />
+              </div>
+            )}
+
             {j.aiSummary && (
               <div className="bg-sage/10 rounded-xl p-3">
                 <p className="font-ui text-xs text-sage-500 font-medium mb-0.5">✨ AI Reflection</p>
                 <p className="font-body text-sm text-stone-warm italic">{j.aiSummary}</p>
               </div>
             )}
+
             {j.tags && j.tags.length > 0 && (
               <div className="flex gap-1.5 flex-wrap mt-3">
                 {j.tags.map((tag) => (
-                  <span key={tag} className="bg-cream-200 text-stone-warm text-xs font-ui px-2.5 py-0.5 rounded-full">{tag}</span>
+                  <span key={tag} className="bg-cream-200 text-stone-warm text-xs font-ui px-2.5 py-0.5 rounded-full">
+                    {tag}
+                  </span>
                 ))}
               </div>
             )}
