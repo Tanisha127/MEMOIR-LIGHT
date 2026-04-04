@@ -1,7 +1,8 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Sparkles, Check, Music, Brain, Palette, TreePine } from "lucide-react";
 import toast from "react-hot-toast";
+import { useLanguage } from "@/context/LanguageContext";
 
 type Activity = {
   id: string;
@@ -13,34 +14,103 @@ type Activity = {
 };
 
 const TYPE_CONFIG: Record<string, { icon: React.ElementType; emoji: string; color: string; bg: string }> = {
-  music: { icon: Music, emoji: "🎵", color: "text-terracotta-400", bg: "from-terracotta-50 to-amber-light/20" },
-  memory: { icon: Brain, emoji: "🧠", color: "text-sage-500", bg: "from-sage-50 to-sage-100" },
-  art: { icon: Palette, emoji: "🎨", color: "text-amber-deep", bg: "from-amber-light/30 to-cream-200" },
-  nature: { icon: TreePine, emoji: "🌿", color: "text-sage-400", bg: "from-sage-50 to-cream-100" },
-  general: { icon: Sparkles, emoji: "✨", color: "text-stone-warm", bg: "from-cream-100 to-cream-200" },
+  music:   { icon: Music,     emoji: "🎵", color: "text-terracotta-400", bg: "from-terracotta-50 to-amber-light/20" },
+  memory:  { icon: Brain,     emoji: "🧠", color: "text-sage-500",       bg: "from-sage-50 to-sage-100" },
+  art:     { icon: Palette,   emoji: "🎨", color: "text-amber-deep",     bg: "from-amber-light/30 to-cream-200" },
+  nature:  { icon: TreePine,  emoji: "🌿", color: "text-sage-400",       bg: "from-sage-50 to-cream-100" },
+  general: { icon: Sparkles,  emoji: "✨", color: "text-stone-warm",     bg: "from-cream-100 to-cream-200" },
 };
 
-const DEFAULT_ACTIVITIES: Activity[] = [
-  { id: "d1", title: "Name 5 Things You Can See", description: "Look around slowly and name 5 things nearby. This helps ground your thoughts.", type: "memory", completed: false, aiGenerated: false },
-  { id: "d2", title: "Hum a Favourite Tune", description: "Just hum any melody you love for 2 minutes. Music heals.", type: "music", completed: false, aiGenerated: false },
-  { id: "d3", title: "Draw Something From Your Window", description: "Simple lines are beautiful too. No skill needed — just expression.", type: "art", completed: false, aiGenerated: false },
-  { id: "d4", title: "Sit Outside for 10 Minutes", description: "Feel the air, listen to birds. Nature is the best therapist.", type: "nature", completed: false, aiGenerated: false },
-];
+const T = {
+  en: {
+    title:            "Activities ✨",
+    subtitle:         "Gentle exercises to keep your mind and heart warm",
+    personalised:     "Personalised for You",
+    personalisedDesc: "Tell me what you enjoy and I'll suggest activities just for you",
+    placeholder:      "e.g. gardening, old films, crosswords, walking…",
+    generate:         "Generate",
+    thinking:         "Thinking…",
+    tellFirst:        "Tell me a little about what you enjoy first",
+    generated:        "New activities generated just for you ✨",
+    couldNotGen:      "Could not generate activities right now",
+    canvasTitle:      "Colour Therapy Canvas",
+    canvasDesc:       "Tap to open — draw freely, no rules",
+    todayActivities:  "Today's Activities",
+    completed:        "Completed 🎉",
+    aiSuggested:      "✨ AI Suggested",
+    undo:             "Undo",
+    great:            "Great job completing",
+    canvasHeading:    "🎨 Free Drawing Canvas",
+    close:            "Close ✕",
+    eraser:           "🧹 Eraser",
+    brush:            "✏️ Brush",
+    clear:            "Clear",
+    canvasCaption:    "Express yourself freely — no rules, only joy 🎨",
+    defaults: [
+      { title: "Name 5 Things You Can See",       description: "Look around slowly and name 5 things nearby. This helps ground your thoughts.",     type: "memory" },
+      { title: "Hum a Favourite Tune",             description: "Just hum any melody you love for 2 minutes. Music heals.",                          type: "music"  },
+      { title: "Draw Something From Your Window",  description: "Simple lines are beautiful too. No skill needed — just expression.",                 type: "art"    },
+      { title: "Sit Outside for 10 Minutes",       description: "Feel the air, listen to birds. Nature is the best therapist.",                       type: "nature" },
+    ],
+  },
+  hi: {
+    title:            "गतिविधियाँ ✨",
+    subtitle:         "आपके मन और दिल को गर्म रखने के लिए सौम्य अभ्यास",
+    personalised:     "आपके लिए विशेष",
+    personalisedDesc: "मुझे बताएं आपको क्या पसंद है और मैं आपके लिए गतिविधियाँ सुझाऊंगा",
+    placeholder:      "जैसे: बागवानी, पुरानी फ़िल्में, पहेलियाँ, सैर…",
+    generate:         "सुझाव लें",
+    thinking:         "सोच रहा हूँ…",
+    tellFirst:        "पहले बताएं आपको क्या पसंद है",
+    generated:        "आपके लिए नई गतिविधियाँ तैयार हैं ✨",
+    couldNotGen:      "अभी गतिविधियाँ नहीं बना सका",
+    canvasTitle:      "रंग चिकित्सा कैनवास",
+    canvasDesc:       "खोलने के लिए टैप करें — स्वतंत्र रूप से बनाएं",
+    todayActivities:  "आज की गतिविधियाँ",
+    completed:        "पूर्ण हो गया 🎉",
+    aiSuggested:      "✨ AI सुझाव",
+    undo:             "पूर्ववत करें",
+    great:            "बहुत बढ़िया! आपने पूरा किया",
+    canvasHeading:    "🎨 स्वतंत्र चित्रकारी",
+    close:            "बंद करें ✕",
+    eraser:           "🧹 मिटाएं",
+    brush:            "✏️ ब्रश",
+    clear:            "साफ़ करें",
+    canvasCaption:    "स्वतंत्र रूप से अभिव्यक्त करें — कोई नियम नहीं, केवल आनंद 🎨",
+    defaults: [
+      { title: "5 चीज़ें देखें जो आपके आसपास हैं", description: "धीरे-धीरे चारों ओर देखें और 5 चीज़ें बताएं। यह आपके विचारों को स्थिर करता है।", type: "memory" },
+      { title: "कोई पसंदीदा धुन गुनगुनाएं",         description: "2 मिनट के लिए कोई भी प्रिय धुन गुनगुनाएं। संगीत ठीक करता है।",                  type: "music"  },
+      { title: "खिड़की से कुछ बनाएं",               description: "सरल रेखाएं भी सुंदर होती हैं। कोई कौशल नहीं चाहिए — बस अभिव्यक्ति।",             type: "art"    },
+      { title: "10 मिनट बाहर बैठें",                description: "हवा महसूस करें, पक्षियों को सुनें। प्रकृति सबसे अच्छी चिकित्सक है।",              type: "nature" },
+    ],
+  },
+} as const;
 
 export default function ActivitiesPage() {
-  const [activities, setActivities] = useState<Activity[]>(DEFAULT_ACTIVITIES);
+  const { lang } = useLanguage();
+  const t = T[lang];
+
+  const [activities, setActivities] = useState<Activity[]>(
+    t.defaults.map((d, i) => ({ ...d, id: `d${i}`, completed: false, aiGenerated: false }))
+  );
   const [interests, setInterests] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [showCanvas, setShowCanvas] = useState(false);
 
+  // Re-seed defaults when language changes but keep completed state
+  const defaultsWithState = T[lang].defaults.map((d, i) => {
+    const existing = activities.find((a) => a.id === `d${i}`);
+    return { ...d, id: `d${i}`, completed: existing?.completed ?? false, aiGenerated: false };
+  });
+
   const generateActivities = async () => {
-    if (!interests.trim()) return toast.error("Tell me a little about what you enjoy first");
+    if (!interests.trim()) return toast.error(t.tellFirst);
     setAiLoading(true);
     try {
       const res = await fetch("/api/activities/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ interests }),
+        body: JSON.stringify({ interests, lang }),
       });
       const data = await res.json();
       if (data.activities) {
@@ -52,48 +122,49 @@ export default function ActivitiesPage() {
             completed: false,
           })),
         ]);
-        toast.success("New activities generated just for you ✨");
+        toast.success(t.generated);
       }
     } catch {
-      toast.error("Could not generate activities right now");
+      toast.error(t.couldNotGen);
     } finally {
       setAiLoading(false);
     }
   };
 
   const toggleComplete = (id: string) => {
+    const act = activities.find((a) => a.id === id);
+    if (act && !act.completed) toast.success(`${t.great} "${act.title}" 🎉`);
     setActivities((prev) =>
       prev.map((a) => (a.id === id ? { ...a, completed: !a.completed } : a))
     );
-    const act = activities.find((a) => a.id === id);
-    if (act && !act.completed) toast.success(`Great job completing "${act.title}" 🎉`);
   };
 
-  const incomplete = activities.filter((a) => !a.completed);
-  const complete = activities.filter((a) => a.completed);
+  const allActivities = [
+    ...defaultsWithState.filter((d) => !activities.find((a) => a.id === d.id && a.aiGenerated)),
+    ...activities.filter((a) => a.aiGenerated),
+  ];
+
+  const incomplete = allActivities.filter((a) => !a.completed);
+  const complete   = allActivities.filter((a) => a.completed);
 
   return (
     <div className="p-6 max-w-3xl mx-auto page-enter">
       <div className="mb-8">
-        <h1 className="font-display text-3xl font-bold text-stone-warm">Activities ✨</h1>
-        <p className="font-body text-stone-light italic mt-1">
-          Gentle exercises to keep your mind and heart warm
-        </p>
+        <h1 className="font-display text-3xl font-bold text-stone-warm">{t.title}</h1>
+        <p className="font-body text-stone-light italic mt-1">{t.subtitle}</p>
       </div>
 
       {/* AI generator */}
       <div className="card-warm p-6 mb-8 bg-gradient-to-br from-sage-50 to-cream-100 border-0">
         <div className="flex items-center gap-2 mb-3">
           <Sparkles className="text-sage-500" size={20} />
-          <h2 className="font-ui font-semibold text-stone-warm">Personalised for You</h2>
+          <h2 className="font-ui font-semibold text-stone-warm">{t.personalised}</h2>
         </div>
-        <p className="font-body text-stone-light text-sm mb-4 italic">
-          Tell me what you enjoy and I'll suggest activities just for you
-        </p>
+        <p className="font-body text-stone-light text-sm mb-4 italic">{t.personalisedDesc}</p>
         <div className="flex gap-3">
           <input
             className="input-warm flex-1"
-            placeholder="e.g. gardening, old films, crosswords, walking…"
+            placeholder={t.placeholder}
             value={interests}
             onChange={(e) => setInterests(e.target.value)}
           />
@@ -105,36 +176,36 @@ export default function ActivitiesPage() {
             {aiLoading ? (
               <>
                 <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                <span>Thinking…</span>
+                <span>{t.thinking}</span>
               </>
             ) : (
               <>
                 <Sparkles size={15} />
-                <span>Generate</span>
+                <span>{t.generate}</span>
               </>
             )}
           </button>
         </div>
       </div>
 
-      {/* Coloring canvas shortcut */}
+      {/* Canvas shortcut */}
       <div
         onClick={() => setShowCanvas(!showCanvas)}
         className="card-warm p-5 mb-8 cursor-pointer bg-gradient-to-r from-amber-light/20 to-terracotta-50 border-0 flex items-center gap-4 hover:shadow-warm-lg transition-all"
       >
         <div className="text-4xl">🎨</div>
         <div>
-          <h3 className="font-ui font-semibold text-stone-warm">Colour Therapy Canvas</h3>
-          <p className="font-ui text-sm text-stone-light">Tap to open — draw freely, no rules</p>
+          <h3 className="font-ui font-semibold text-stone-warm">{t.canvasTitle}</h3>
+          <p className="font-ui text-sm text-stone-light">{t.canvasDesc}</p>
         </div>
         <div className="ml-auto text-stone-light">→</div>
       </div>
 
-      {showCanvas && <ColorCanvas onClose={() => setShowCanvas(false)} />}
+      {showCanvas && <ColorCanvas onClose={() => setShowCanvas(false)} t={t} />}
 
       {/* Activity list */}
       <div className="space-y-3">
-        <h2 className="font-ui font-semibold text-stone-warm mb-3">Today's Activities</h2>
+        <h2 className="font-ui font-semibold text-stone-warm mb-3">{t.todayActivities}</h2>
         {incomplete.map((a) => {
           const config = TYPE_CONFIG[a.type] || TYPE_CONFIG.general;
           return (
@@ -145,7 +216,7 @@ export default function ActivitiesPage() {
                 <p className="font-ui text-sm text-stone-light mt-0.5">{a.description}</p>
                 {a.aiGenerated && (
                   <span className="inline-block mt-2 font-ui text-xs text-sage-500 bg-sage/10 px-2 py-0.5 rounded-full">
-                    ✨ AI Suggested
+                    {t.aiSuggested}
                   </span>
                 )}
               </div>
@@ -162,14 +233,17 @@ export default function ActivitiesPage() {
 
       {complete.length > 0 && (
         <div className="mt-6 opacity-60">
-          <h2 className="font-ui font-semibold text-stone-light mb-3">Completed 🎉</h2>
+          <h2 className="font-ui font-semibold text-stone-light mb-3">{t.completed}</h2>
           <div className="space-y-2">
             {complete.map((a) => (
               <div key={a.id} className="card-warm p-4 flex items-center gap-3">
                 <span className="text-xl">✅</span>
                 <p className="font-ui text-stone-warm line-through flex-1">{a.title}</p>
-                <button onClick={() => toggleComplete(a.id)} className="font-ui text-xs text-stone-light hover:text-terracotta">
-                  Undo
+                <button
+                  onClick={() => toggleComplete(a.id)}
+                  className="font-ui text-xs text-stone-light hover:text-terracotta"
+                >
+                  {t.undo}
                 </button>
               </div>
             ))}
@@ -180,16 +254,20 @@ export default function ActivitiesPage() {
   );
 }
 
-// Coloring canvas component
-function ColorCanvas({ onClose }: { onClose: () => void }) {
-  const canvasRef = useState<HTMLCanvasElement | null>(null);
-  const [color, setColor] = useState("#7CAF9E");
-  const [size, setSize] = useState(12);
-  const [drawing, setDrawing] = useState(false);
-  const [tool, setTool] = useState<"brush" | "eraser">("brush");
-  const lastPos = useState<{ x: number; y: number } | null>(null);
+// ── Canvas component ──────────────────────────────────────────────
+type CanvasT = { canvasHeading: string; close: string; eraser: string; brush: string; clear: string; canvasCaption: string };
 
-  const getPos = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>, canvas: HTMLCanvasElement) => {
+function ColorCanvas({ onClose, t }: { onClose: () => void; t: CanvasT }) {
+  const [color, setColor]     = useState("#7CAF9E");
+  const [size, setSize]       = useState(12);
+  const [drawing, setDrawing] = useState(false);
+  const [tool, setTool]       = useState<"brush" | "eraser">("brush");
+  const [lastPos, setLastPos] = useState<{ x: number; y: number } | null>(null);
+
+  const getPos = (
+    e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>,
+    canvas: HTMLCanvasElement
+  ) => {
     const rect = canvas.getBoundingClientRect();
     if ("touches" in e) {
       return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
@@ -200,42 +278,39 @@ function ColorCanvas({ onClose }: { onClose: () => void }) {
   const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!drawing) return;
     const canvas = e.currentTarget;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const ctx    = canvas.getContext("2d");
+    if (!ctx || !lastPos) return;
     const pos = getPos(e, canvas);
     ctx.globalCompositeOperation = tool === "eraser" ? "destination-out" : "source-over";
     ctx.strokeStyle = color;
-    ctx.lineWidth = tool === "eraser" ? size * 3 : size;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    if (lastPos[0]) {
-      ctx.beginPath();
-      ctx.moveTo(lastPos[0].x, lastPos[0].y);
-      ctx.lineTo(pos.x, pos.y);
-      ctx.stroke();
-    }
-    lastPos[1](pos);
+    ctx.lineWidth   = tool === "eraser" ? size * 3 : size;
+    ctx.lineCap     = "round";
+    ctx.lineJoin    = "round";
+    ctx.beginPath();
+    ctx.moveTo(lastPos.x, lastPos.y);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+    setLastPos(pos);
   };
 
   const clearCanvas = () => {
     const canvas = document.getElementById("therapy-canvas") as HTMLCanvasElement;
-    const ctx = canvas?.getContext("2d");
+    const ctx    = canvas?.getContext("2d");
     if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
   };
 
-  const COLORS = ["#D4704E", "#7CAF9E", "#E8B86D", "#8296B4", "#A8C8BF", "#F9DDD6", "#4A3728", "#FFFFFF"];
-  const SIZES = [4, 8, 12, 20, 32];
+  const COLORS = ["#D4704E","#7CAF9E","#E8B86D","#8296B4","#A8C8BF","#F9DDD6","#4A3728","#FFFFFF"];
+  const SIZES  = [4, 8, 12, 20, 32];
 
   return (
     <div className="card-warm p-5 mb-8 animate-slide-up">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-display text-lg font-semibold text-stone-warm">🎨 Free Drawing Canvas</h3>
+        <h3 className="font-display text-lg font-semibold text-stone-warm">{t.canvasHeading}</h3>
         <button onClick={onClose} className="text-stone-light hover:text-stone-warm text-sm font-ui">
-          Close ✕
+          {t.close}
         </button>
       </div>
 
-      {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-3 mb-3">
         <div className="flex gap-1.5">
           {COLORS.map((c) => (
@@ -261,10 +336,10 @@ function ColorCanvas({ onClose }: { onClose: () => void }) {
           onClick={() => setTool(tool === "eraser" ? "brush" : "eraser")}
           className={`font-ui text-sm px-3 py-1.5 rounded-xl transition-all ${tool === "eraser" ? "bg-terracotta/20 text-terracotta" : "bg-cream-200 text-stone-warm"}`}
         >
-          {tool === "eraser" ? "🧹 Eraser" : "✏️ Brush"}
+          {tool === "eraser" ? t.eraser : t.brush}
         </button>
         <button onClick={clearCanvas} className="font-ui text-sm px-3 py-1.5 rounded-xl bg-cream-200 text-stone-warm">
-          Clear
+          {t.clear}
         </button>
       </div>
 
@@ -273,17 +348,15 @@ function ColorCanvas({ onClose }: { onClose: () => void }) {
         width={600}
         height={300}
         className="w-full rounded-2xl bg-white border border-stone-lighter touch-none"
-        onMouseDown={(e) => { setDrawing(true); lastPos[1](getPos(e, e.currentTarget)); }}
-        onMouseUp={() => { setDrawing(false); lastPos[1](null); }}
-        onMouseLeave={() => { setDrawing(false); lastPos[1](null); }}
+        onMouseDown={(e) => { setDrawing(true); setLastPos(getPos(e, e.currentTarget)); }}
+        onMouseUp={() => { setDrawing(false); setLastPos(null); }}
+        onMouseLeave={() => { setDrawing(false); setLastPos(null); }}
         onMouseMove={draw}
-        onTouchStart={(e) => { setDrawing(true); lastPos[1](getPos(e, e.currentTarget)); }}
-        onTouchEnd={() => { setDrawing(false); lastPos[1](null); }}
+        onTouchStart={(e) => { setDrawing(true); setLastPos(getPos(e, e.currentTarget)); }}
+        onTouchEnd={() => { setDrawing(false); setLastPos(null); }}
         onTouchMove={draw}
       />
-      <p className="font-ui text-xs text-stone-light text-center mt-2 italic">
-        Express yourself freely — no rules, only joy 🎨
-      </p>
+      <p className="font-ui text-xs text-stone-light text-center mt-2 italic">{t.canvasCaption}</p>
     </div>
   );
 }

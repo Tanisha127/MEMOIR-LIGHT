@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { LanguageProvider } from "@/context/LanguageContext";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import { Providers } from "@/components/Providers";
@@ -19,25 +20,27 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <Providers>
-          {children}
-          <Toaster
-            position="top-center"
-            toastOptions={{
-              className: "toast-warm",
-              duration: 3000,
-              style: {
-                background: "#FDF0DC",
-                color: "#4A3728",
-                border: "1px solid #E8DDD4",
-                borderRadius: "16px",
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: "15px",
-                padding: "14px 20px",
-              },
-            }}
-          />
-        </Providers>
+        <LanguageProvider>
+            <Providers>
+              {children}
+              <Toaster
+                position="top-center"
+                toastOptions={{
+                  className: "toast-warm",
+                  duration: 3000,
+                  style: {
+                    background: "#FDF0DC",
+                    color: "#4A3728",
+                    border: "1px solid #E8DDD4",
+                    borderRadius: "16px",
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontSize: "15px",
+                    padding: "14px 20px",
+                  },
+                }}
+              />
+            </Providers>
+          </LanguageProvider>
       </body>
     </html>
   );
