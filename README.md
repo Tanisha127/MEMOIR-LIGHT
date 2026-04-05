@@ -1,107 +1,79 @@
-# 🌿 Memoir Light — AI Memory Companion
+# 🌿 Memoir Light
 
-> *A warm, gentle companion for memory care and daily living*
+> *A warm, gentle AI companion for memory care and daily living*
 
-Memoir Light is a beautiful, accessible web application designed for elderly individuals and people with memory impairments. It combines thoughtful UI design with AI-powered features to create a safe, comforting digital companion.
+Memoir Light is a beautiful, accessible web application designed for elderly individuals and people with memory impairments. It combines thoughtful UI design with AI-powered features to create a safe, comforting digital space — built with love, not cold blue interfaces.
 
----
-
-## ✨ What Makes This Different
-
-| Feature | Description |
-|---|---|
-| 🌸 **Mood Garden** | Visual flower garden that grows with your daily mood logs |
-| 🌬️ **Calm Breathing** | Guided breathing exercises with 3 science-backed patterns |
-| 🗺️ **Life Timeline** | Chronicle your life story with milestones and memories |
-| 🎨 **Colour Therapy Canvas** | Freehand drawing tool for creative expression |
-| 💛 **Warm AI Reflections** | GPT-powered journal summaries written like a kind friend |
-| 🔊 **Voice Everything** | Voice input for journals, voice output for reminders |
-| 🌿 **Terracotta & Sage Palette** | Warm, earthy tones — not cold blue/white |
+**Live Demo** → (https://memoir-light.vercel.app)
 
 ---
 
-## 🛠 Tech Stack
-
-- **Frontend**: Next.js 14 (App Router) + Tailwind CSS
-- **Backend**: Next.js API Routes
-- **Database**: PostgreSQL + Prisma ORM
-- **Auth**: NextAuth.js (credentials)
-- **AI**: OpenAI GPT-4o-mini
-- **Voice**: Web Speech API (built into browsers)
-- **Fonts**: Playfair Display + Lora + DM Sans
-
----
-
-## 🚀 Getting Started
+## Getting Started
 
 ### 1. Clone & Install
-
 ```bash
-git clone <your-repo>
-cd memoir-light
+git clone https://github.com/Tanisha127/MEMOIR-LIGHT.git
+cd MEMOIR-LIGHT
 npm install
 ```
 
-### 2. Set Up Environment Variables
-
+### 2. Environment Variables
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` with your values:
+Fill in your `.env`:
 ```env
 DATABASE_URL="postgresql://..."
-NEXTAUTH_SECRET="generate-with-openssl-rand-base64-32"
+NEXTAUTH_SECRET="your-secret-here"
 NEXTAUTH_URL="http://localhost:3000"
-OPENAI_API_KEY="sk-..."   # Optional — fallback responses built in
+OPENAI_API_KEY="sk-..."
 ```
 
-> **Free PostgreSQL options**: [Neon.tech](https://neon.tech) · [Supabase](https://supabase.com) · [Railway](https://railway.app)
-
-### 3. Set Up the Database
-
+Generate `NEXTAUTH_SECRET`:
 ```bash
-npm run db:generate   # Generate Prisma client
-npm run db:push       # Push schema to database
+openssl rand -base64 32
 ```
 
-### 4. Run the App
+Free PostgreSQL options: [Neon.tech](https://neon.tech) · [Supabase](https://supabase.com) · [Railway](https://railway.app)
 
+### 3. Database Setup
+```bash
+npm run db:generate
+npm run db:push
+```
+
+### 4. Run
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) 🌿
+Open [http://localhost:3000](http://localhost:3000)
 
 ---
 
-## 🌟 Unique Features 
-
-1. **Mood Garden** — Moods become flowers in a growing visual garden
-2. **Life Timeline** — Chronicle life milestones from birth to today
-3. **Calm Breathing** — 3 breathing patterns with animated circle guide
-4. **Colour Therapy Canvas** — In-app drawing with brushes and colours
-5. **AI Affirmations** — Mood-triggered personalised affirmations
-6. **Hydration tracker** — Visual glass-by-glass water tracker on dashboard
-7. **Voice journal input** — Speak your memories instead of typing
-8. **Family voice introduction** — Text-to-speech intro for each family member
+## Scripts
+```bash
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run db:generate  # Generate Prisma client
+npm run db:push      # Push schema to database
+npm run db:studio    # Open Prisma Studio (visual DB editor)
+```
 
 ---
 
-## 🔒 Privacy & Safety
+## Deployment
 
-- All data stored in your own database
-- Passwords hashed with bcrypt (12 rounds)
-- JWT session tokens
-- No data sent to third parties except OpenAI (for AI features, optional)
+Memoir Light deploys to Vercel in one click.
+
+1. Push to GitHub
+2. Import project at [vercel.com](https://vercel.com)
+3. Add environment variables in Vercel dashboard
+4. Deploy
+
+Database: Use [Neon.tech](https://neon.tech) for a free serverless PostgreSQL instance that works perfectly with Vercel.
 
 ---
 
-## 📱 Accessibility
-
-- Large font size toggle (Normal / Large / Very Large)
-- High contrast warm palette
-- Voice input and output throughout
-- Large tap targets (min 44px)
-- Serif fonts for better readability
-
+*Made for the people who deserve gentleness.*
